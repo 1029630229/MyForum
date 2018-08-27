@@ -1,0 +1,12 @@
+spring:
+  profiles: 
+    active: dev
+
+server:
+  port: 8080
+
+pagehelper:
+    helperDialect: mysql
+    reasonable: true
+    supportMethodsArguments: true
+    params: count=countSql
