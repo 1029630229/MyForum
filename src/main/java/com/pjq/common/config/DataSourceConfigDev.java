@@ -18,8 +18,10 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
+import com.alibaba.druid.filter.config.ConfigTools;
 import com.alibaba.druid.pool.DruidDataSourceFactory;
 import com.pjq.common.datasource.DatabaseType;
 import com.pjq.common.datasource.DynamicDataSource;
@@ -37,17 +39,17 @@ public class DataSourceConfigDev {
 	 * 创建数据源(数据源的名称：方法名可以取为XXXDataSource(),XXX为数据库名称,该名称也就是数据源的名称)
 	 */
 	@Bean
-	public DataSource myTestDbDataSource() throws Exception {
+	public DataSource devDataSource() throws Exception {
 		Properties props = new Properties();
 		props.put("driverClassName", env.getProperty("jdbc.driverClassName"));
 		props.put("url", env.getProperty("jdbc.url"));
 		props.put("username", env.getProperty("jdbc.username"));
-		props.put("password", env.getProperty("jdbc.password"));
-		this.setProps(props);
+		props.put("password",ConfigTools.decrypt(env.getProperty("jdbc.publicKey"), env.getProperty("jdbc.password")) );
+		this.setDataSourceProperties(props);
 		return DruidDataSourceFactory.createDataSource(props);
 	}
 
-	public void setProps(Properties props) {
+	public void setDataSourceProperties(Properties props) {
 		props.put("initialSize", env.getProperty("druid.initialSize"));
 		props.put("minIdle", env.getProperty("druid.minIdle"));
 		props.put("maxActive", env.getProperty("druid.maxActive"));
@@ -70,24 +72,28 @@ public class DataSourceConfigDev {
 	 */
 	@Bean
 	@Primary
-	public DynamicDataSource dataSource(@Qualifier("myTestDbDataSource") DataSource myTestDbDataSource) {
+	public DynamicDataSource dataSource(@Qualifier("devDataSource") DataSource devDataSource) {
 		Map<Object, Object> targetDataSources = new HashMap<>();
-		targetDataSources.put(DatabaseType.dataSource, myTestDbDataSource);
+		targetDataSources.put(DatabaseType.dataSource, devDataSource);
 		DynamicDataSource dataSource = new DynamicDataSource();
 		dataSource.setTargetDataSources(targetDataSources);// 该方法是AbstractRoutingDataSource的方法
-		dataSource.setDefaultTargetDataSource(myTestDbDataSource);// 默认的datasource设置为myTestDbDataSource
+		dataSource.setDefaultTargetDataSource(devDataSource);// 默认的datasource设置为myTestDbDataSource
 		return dataSource;
 	}
 
 	/**
 	 * 根据数据源创建SqlSessionFactory
 	 */
-	@Bean
-	public SqlSessionFactory sqlSessionFactory(@Qualifier("myTestDbDataSource") DataSource myTestDbDataSource) throws Exception {
+	@Bean("sqlSessionFactory")
+	public SqlSessionFactory sqlSessionFactoryBean(DynamicDataSource ds) throws Exception {
 		SqlSessionFactoryBean fb = new SqlSessionFactoryBean();
-		fb.setDataSource(this.dataSource(myTestDbDataSource));
-		fb.setTypeAliasesPackage("com.pjq.vo");
-		fb.setMapperLocations(new PathMatchingResourcePatternResolver().getResources("classpath:com/pjq/dao/*.xml"));
+		fb.setDataSource(ds);
+		try {
+			ResourcePatternResolver rp = new PathMatchingResourcePatternResolver();
+			fb.setMapperLocations(rp.getResources("classpath:com/pjq/dao/*.xml"));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return fb.getObject();
 	}
 
