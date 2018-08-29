@@ -4,6 +4,7 @@ spring:
   datasource:
     initialize: false
 
+#端口号
 server:
   port: 8080
 
@@ -12,3 +13,7 @@ pagehelper:
     reasonable: true
     supportMethodsArguments: true
     params: count=countSql
+
+#日志配置
+logging:
+  config: classpath:log4j2.yml

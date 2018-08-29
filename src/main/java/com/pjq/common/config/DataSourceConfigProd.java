@@ -29,8 +29,8 @@ import com.pjq.common.datasource.DynamicDataSource;
 @Configuration
 @MapperScan(basePackages = "com.pjq.dao")
 @PropertySource("dataSource_dev.properties")
-@Profile("dev")
-public class DataSourceConfigDev {
+@Profile("prod")
+public class DataSourceConfigProd {
 
 	@Autowired
 	private Environment env;
@@ -39,7 +39,7 @@ public class DataSourceConfigDev {
 	 * 创建数据源(数据源的名称：方法名可以取为XXXDataSource(),XXX为数据库名称,该名称也就是数据源的名称)
 	 */
 	@Bean
-	public DataSource devDataSource() throws Exception {
+	public DataSource prodDataSource() throws Exception {
 		Properties props = new Properties();
 		props.put("driverClassName", env.getProperty("jdbc.driverClassName"));
 		props.put("url", env.getProperty("jdbc.url"));
@@ -72,12 +72,12 @@ public class DataSourceConfigDev {
 	 */
 	@Bean
 	@Primary
-	public DynamicDataSource dataSource(@Qualifier("devDataSource") DataSource devDataSource) {
+	public DynamicDataSource dataSource(@Qualifier("prodDataSource") DataSource prodDataSource) {
 		Map<Object, Object> targetDataSources = new HashMap<>();
-		targetDataSources.put(DatabaseType.dataSource, devDataSource);
+		targetDataSources.put(DatabaseType.dataSource, prodDataSource);
 		DynamicDataSource dataSource = new DynamicDataSource();
 		dataSource.setTargetDataSources(targetDataSources);// 该方法是AbstractRoutingDataSource的方法
-		dataSource.setDefaultTargetDataSource(devDataSource);// 默认的datasource设置为myTestDbDataSource
+		dataSource.setDefaultTargetDataSource(prodDataSource);// 默认的datasource设置为myTestDbDataSource
 		return dataSource;
 	}
 
